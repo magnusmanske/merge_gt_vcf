@@ -1,5 +1,5 @@
 #[global_allocator]
-static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
+static GLOBAL: mimalloc::MiMalloc = mimalloc::MiMalloc;
 
 use vcf::*;
 use flate2::read::MultiGzDecoder;
