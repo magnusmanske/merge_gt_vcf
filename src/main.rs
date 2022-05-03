@@ -1,3 +1,6 @@
+#[global_allocator]
+static GLOBAL: jemallocator::Jemalloc = jemallocator::Jemalloc;
+
 use vcf::*;
 use flate2::read::MultiGzDecoder;
 use std::fs::File;
@@ -64,6 +67,11 @@ fn main() {
             println!("Could only read from {} of {} files on data row {}",total_read,readers.len(),row);
             break
         }
+
+        if row>=100000 {
+            break;
+        }
+
         
         /*
         // Paranoia
