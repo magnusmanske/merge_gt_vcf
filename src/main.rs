@@ -2,7 +2,6 @@ use vcf::*;
 use flate2::read::MultiGzDecoder;
 use std::fs::File;
 use std::io::{stdin, stdout, BufRead, BufReader, BufWriter};
-//use rayon::prelude::*;
 
 // \rm ./target/release/merge_gt_vcf ; cargo build --release ; time ./target/release/merge_gt_vcf < test.manifest > test.vcf
 
@@ -65,14 +64,8 @@ fn main() {
             break
         }
         
-        // TESTING limit to first X rows
-        if row == 1000000 {
-            println!("Reached row {}",row);
-            break ;
-        }
-        
-        // Paranoia
         /*
+        // Paranoia
         let has_problem = readers.iter().any(|x|{!x.check_meta(&readers[0])});
         if has_problem {
             println!("Row {} has a problem!",row);
@@ -80,8 +73,8 @@ fn main() {
         }
         */
         let mut joined_vcf_record = readers[0].vcf_record.clone();
-        readers.iter().skip(1).for_each(|record|{
-            joined_vcf_record.genotype.append(&mut record.vcf_record.genotype.clone());
+        readers.iter_mut().skip(1).for_each(|record|{
+            joined_vcf_record.genotype.append(&mut record.vcf_record.genotype);
         });
         out.write_record(&joined_vcf_record).unwrap();
     }
