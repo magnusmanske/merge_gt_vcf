@@ -2,6 +2,7 @@ use vcf::*;
 use flate2::read::MultiGzDecoder;
 use std::fs::File;
 use std::io::{stdin, stdout, BufRead, BufReader, BufWriter};
+use rayon::prelude::*;
 
 // \rm ./target/release/merge_gt_vcf ; cargo build --release ; time ./target/release/merge_gt_vcf < test.manifest > test.vcf
 
@@ -51,7 +52,7 @@ fn main() {
     loop {
         row += 1 ;
         let total_read : usize = readers
-        .iter_mut()
+        .par_iter_mut()
         .map(|reader|{
             match reader.load_next() {
                 Ok(()) => 1 ,
