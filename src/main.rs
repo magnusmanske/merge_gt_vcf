@@ -28,9 +28,8 @@ impl FileReader {
         }
     }
 
-    pub fn load_next(&mut self) -> Result<(),VCFError> {
-        self.reader.next_record(&mut self.vcf_record)?;
-        Ok(())
+    pub fn load_next(&mut self) -> Result<bool,VCFError> {
+        Ok(self.reader.next_record(&mut self.vcf_record)?)
     }
 
     pub fn check_meta(&self, origin: &Self) -> bool {
@@ -58,25 +57,21 @@ fn main() {
         .par_iter_mut()
         .map(|reader|{
             match reader.load_next() {
-                Ok(()) => 1 ,
+                Ok(true) => 1 ,
                 _ => 0 ,
             }
         })
         .sum();
         if total_read != readers.len() {
-            println!("Could only read from {} of {} files on data row {}",total_read,readers.len(),row);
+            if total_read > 0 {
+                println!("Could only read from {} of {} files on data row {}",total_read,readers.len(),row);
+            }
             break
         }
-
-        if row>=100000 {
-            break;
-        }
-
         
         /*
         // Paranoia
-        let has_problem = readers.iter().any(|x|{!x.check_meta(&readers[0])});
-        if has_problem {
+        if readers.iter().any(|x|{!x.check_meta(&readers[0])}) {
             println!("Row {} has a problem!",row);
             break ;
         }
@@ -87,5 +82,4 @@ fn main() {
         });
         out.write_record(&joined_vcf_record).unwrap();
     }
-    println!("DONE");
 }
