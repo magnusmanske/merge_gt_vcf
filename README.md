@@ -17,6 +17,8 @@ merge_gt_vcf --help
 merge_gt_vcf < FILE_WITH_VCF_FILENAMES > OUTPUT.vcf
 
 # For bgzipped VCF:
+merge_gt_vcf --bgzip < FILE_WITH_VCF_FILENAMES > OUTPUT.vcf.gz
+# or, if samtools is installed:
 merge_gt_vcf < FILE_WITH_VCF_FILENAMES | bgzip > OUTPUT.vcf.gz
 
 # For plain-text VCF with CROM/POS/ID/REF/ALT checks:
