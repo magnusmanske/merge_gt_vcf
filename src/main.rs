@@ -48,21 +48,20 @@ struct Args {
     /// Check for identical CHROM, POS, ID, REF, ALT in every file; ~5% slower
     #[clap(short, long)]
     check: bool,
+}
 
+fn get_out_header(readers: &Vec<FileReader>) -> VCFHeader {
+    let all_samples : Vec<U8Vec> = readers.iter().map(|reader|reader.reader.header().samples().to_owned()).flatten().collect();
+    let mut items : Vec<VCFHeaderLine> = readers[0].reader.header().items().to_vec() ;
+    items.pop();
+    VCFHeader::new(items, all_samples)
 }
 
 fn main() {
     let args = Args::parse();
-
     let mut readers : Vec<FileReader> = stdin().lock().lines().map(|line|{FileReader::new(&line.unwrap())}).collect();
-    let all_samples : Vec<U8Vec> = readers.iter().map(|reader|reader.reader.header().samples().to_owned()).flatten().collect();
-    let mut items : Vec<VCFHeaderLine> = readers[0].reader.header().items().to_vec() ;
-    items.pop();
-    let out_header = VCFHeader::new(items, all_samples);
     let s = stdout() ;
-    let writer = BufWriter::new(s.lock());
-    let mut out = VCFWriter::new(writer,&out_header).unwrap();
-
+    let mut out = VCFWriter::new(BufWriter::new(s.lock()),&get_out_header(&readers)).unwrap();
     let mut row = 0 ;
     loop {
         row += 1 ;
