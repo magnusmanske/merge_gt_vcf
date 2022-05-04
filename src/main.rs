@@ -97,9 +97,7 @@ fn read_one_line_from_every_file(readers: &mut Vec<FileReader>, row: usize, seri
 
 fn join_vcf_records(readers: &mut Vec<FileReader>) -> VCFRecord {
     let mut joined_vcf_record = readers[0].vcf_record.clone();
-    readers.iter_mut().skip(1).for_each(|record|{
-        joined_vcf_record.genotype.append(&mut record.vcf_record.genotype);
-    });
+    joined_vcf_record.genotype.extend(readers.iter_mut().skip(1).map(|record|{record.vcf_record.genotype.to_owned()}).flatten());
     joined_vcf_record
 }
 
