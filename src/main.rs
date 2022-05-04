@@ -27,8 +27,11 @@ impl FileReader {
         }
     }
 
-    pub fn load_next(&mut self) -> Result<bool,VCFError> {
-        Ok(self.reader.next_record(&mut self.vcf_record)?)
+    pub fn load_next(&mut self) -> usize {
+        match self.reader.next_record(&mut self.vcf_record) {
+            Ok(lines_read) => if lines_read {1} else {0}
+            _ => 0
+        }
     }
 
     pub fn check_meta(&self, origin: &Self) -> bool {
@@ -61,44 +64,29 @@ fn get_out_header(readers: &Vec<FileReader>) -> VCFHeader {
     VCFHeader::new(items, all_samples)
 }
 
+fn read_one_line_from_every_file(readers: &mut Vec<FileReader>, row: usize, serial: bool) -> bool {
+    let total_read : usize = if serial {
+        readers.iter_mut().map(|reader|reader.load_next()).sum()
+    } else {
+        readers.par_iter_mut().map(|reader|reader.load_next()).sum()
+    } ;
+    if total_read != readers.len() {
+        if total_read > 0 { // Some VCF files were read but some were not, that's a problem
+            panic!("Could only read from {} of {} files on data row {}",total_read,readers.len(),row);
+        }
+        // All VCF files have reached the end simultaneously, we're done!
+        return false ;
+    }
+    true
+}
+
 fn main() {
     let args = Args::parse();
     let mut readers : Vec<FileReader> = stdin().lock().lines().map(|line|{FileReader::new(&line.unwrap())}).collect();
     let s = stdout() ;
     let mut out = VCFWriter::new(BufWriter::new(s.lock()),&get_out_header(&readers)).unwrap();
-    let mut row = 0 ;
-    loop {
-        row += 1 ;
-        let total_read : usize = if args.serial {
-            readers
-            .iter_mut()
-            .map(|reader|{
-                match reader.load_next() {
-                    Ok(true) => 1 ,
-                    _ => 0 ,
-                }
-            })
-            .sum()
-        } else {
-            readers
-            .par_iter_mut()
-            .map(|reader|{
-                match reader.load_next() {
-                    Ok(true) => 1 ,
-                    _ => 0 ,
-                }
-            })
-            .sum()
-
-        } ;
-        if total_read != readers.len() {
-            if total_read > 0 { // Some VCF files were read but some were not, that's a problem
-                panic!("Could only read from {} of {} files on data row {}",total_read,readers.len(),row);
-            }
-            // All VCF files have reached the end simultaneously, we're done!
-            break ;
-        }
-        
+    let mut row: usize = 1 ;
+    while read_one_line_from_every_file(&mut readers, row, args.serial ) {
         if args.check {
             if readers.iter().any(|x|{!x.check_meta(&readers[0])}) {
                 panic!("Row {} has a problem with CROM/POS/ID/REF/ALT.",row);
@@ -110,5 +98,6 @@ fn main() {
             joined_vcf_record.genotype.append(&mut record.vcf_record.genotype);
         });
         out.write_record(&joined_vcf_record).unwrap();
+        row += 1 ;
     }
 }
