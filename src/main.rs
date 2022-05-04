@@ -53,7 +53,6 @@ struct Args {
 
 fn main() {
     let args = Args::parse();
-    println!("{:?}",&args);
 
     let mut readers : Vec<FileReader> = stdin().lock().lines().map(|line|{FileReader::new(&line.unwrap())}).collect();
     let all_samples : Vec<U8Vec> = readers.iter().map(|reader|reader.reader.header().samples().to_owned()).flatten().collect();
