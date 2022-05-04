@@ -7,8 +7,6 @@ use std::fs::File;
 use std::io::{stdin, stdout, BufRead, BufReader, BufWriter};
 use rayon::prelude::*;
 
-// \rm ./target/release/merge_gt_vcf ; cargo build --release ; time ./target/release/merge_gt_vcf < test.manifest > test.vcf
-
 pub struct FileReader {
     _filename: String,
     reader : VCFReader<BufReader<MultiGzDecoder<File>>>,
