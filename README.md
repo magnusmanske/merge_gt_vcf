@@ -10,9 +10,15 @@ A tool to merge VCF files that have the exact same number of (data) rows, chromo
 
 # Usage
 ```
+# Get help
+merge_gt_vcf --help
+
 # For plain-text VCF:
-./merge_gt_vcf < FILE_WITH_VCF_FILENAMES > OUTPUT.vcf
+merge_gt_vcf < FILE_WITH_VCF_FILENAMES > OUTPUT.vcf
 
 # For bgzipped VCF:
-./merge_gt_vcf < FILE_WITH_VCF_FILENAMES | bgzip > OUTPUT.vcf.gz
+merge_gt_vcf < FILE_WITH_VCF_FILENAMES | bgzip > OUTPUT.vcf.gz
+
+# For plain-text VCF with CROM/POS/ID/REF/ALT checks:
+merge_gt_vcf --check < FILE_WITH_VCF_FILENAMES > OUTPUT.vcf
 ```
