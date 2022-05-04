@@ -48,6 +48,10 @@ struct Args {
     /// Check for identical CHROM, POS, ID, REF, ALT in every file; ~5% slower
     #[clap(short, long)]
     check: bool,
+
+    /// Serial not parallel file reading; faster if you have few input files, or few CPU cores
+    #[clap(short, long)]
+    serial: bool,
 }
 
 fn get_out_header(readers: &Vec<FileReader>) -> VCFHeader {
@@ -65,15 +69,28 @@ fn main() {
     let mut row = 0 ;
     loop {
         row += 1 ;
-        let total_read : usize = readers
-        .par_iter_mut()
-        .map(|reader|{
-            match reader.load_next() {
-                Ok(true) => 1 ,
-                _ => 0 ,
-            }
-        })
-        .sum();
+        let total_read : usize = if args.serial {
+            readers
+            .iter_mut()
+            .map(|reader|{
+                match reader.load_next() {
+                    Ok(true) => 1 ,
+                    _ => 0 ,
+                }
+            })
+            .sum()
+        } else {
+            readers
+            .par_iter_mut()
+            .map(|reader|{
+                match reader.load_next() {
+                    Ok(true) => 1 ,
+                    _ => 0 ,
+                }
+            })
+            .sum()
+
+        } ;
         if total_read != readers.len() {
             if total_read > 0 { // Some VCF files were read but some were not, that's a problem
                 panic!("Could only read from {} of {} files on data row {}",total_read,readers.len(),row);
