@@ -79,9 +79,9 @@ fn read_one_line_from_every_file(readers: &mut Vec<FileReader>, row: usize, seri
     }
     if check_metadata {
         let has_problem = if serial {
-            readers.iter().any(|x|{!x.check_meta(&readers[0])})
+            readers.iter().skip(1).any(|x|{!x.check_meta(&readers[0])})
         } else {
-            readers.par_iter().any(|x|{!x.check_meta(&readers[0])})
+            readers.par_iter().skip(1).any(|x|{!x.check_meta(&readers[0])})
         } ;
         if has_problem {
             panic!("Row {} has a problem with CROM/POS/ID/REF/ALT.",row);
