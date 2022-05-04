@@ -6,7 +6,7 @@ A tool to merge VCF files that have the exact same number of (data) rows, chromo
 # Installation
 1. [Install Rust](https://www.rust-lang.org/tools/install).
 2. `git clone https://github.com/magnusmanske/merge_gt_vcf.git`
-3. `cargo build --release`
+3. `RUSTFLAGS="-C target-cpu=native" cargo build --release`
 
 # Usage
 ```
@@ -21,4 +21,7 @@ merge_gt_vcf < FILE_WITH_VCF_FILENAMES | bgzip > OUTPUT.vcf.gz
 
 # For plain-text VCF with CROM/POS/ID/REF/ALT checks:
 merge_gt_vcf --check < FILE_WITH_VCF_FILENAMES > OUTPUT.vcf
+
+# For plain-text VCF with few VCF input files and/or few CPU cores:
+merge_gt_vcf --serial < FILE_WITH_VCF_FILENAMES > OUTPUT.vcf
 ```

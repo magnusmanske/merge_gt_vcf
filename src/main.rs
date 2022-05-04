@@ -21,9 +21,9 @@ impl FileReader {
         ).unwrap()))).unwrap();
         let vcf_record = VCFRecord::new(reader.header().to_owned());
         FileReader { 
-            reader:reader, 
+            reader, 
             _filename:filename.to_string(), 
-            vcf_record:vcf_record
+            vcf_record
         }
     }
 
@@ -64,7 +64,7 @@ fn get_out_header(readers: &Vec<FileReader>) -> VCFHeader {
     VCFHeader::new(items, all_samples)
 }
 
-fn read_one_line_from_every_file(readers: &mut Vec<FileReader>, row: usize, serial: bool) -> bool {
+fn read_one_line_from_every_file(readers: &mut Vec<FileReader>, row: usize, serial: bool, check_metadata: bool) -> bool {
     let total_read : usize = if serial {
         readers.iter_mut().map(|reader|reader.load_next()).sum()
     } else {
@@ -77,15 +77,17 @@ fn read_one_line_from_every_file(readers: &mut Vec<FileReader>, row: usize, seri
         // All VCF files have reached the end simultaneously, we're done!
         return false ;
     }
-    true
-}
-
-fn check_metadata_consistency(readers: &Vec<FileReader>, row: usize, check: bool) {
-    if check {
-        if readers.par_iter().any(|x|{!x.check_meta(&readers[0])}) {
+    if check_metadata {
+        let has_problem = if serial {
+            readers.iter().any(|x|{!x.check_meta(&readers[0])})
+        } else {
+            readers.par_iter().any(|x|{!x.check_meta(&readers[0])})
+        } ;
+        if has_problem {
             panic!("Row {} has a problem with CROM/POS/ID/REF/ALT.",row);
         }
     }
+    true
 }
 
 fn join_vcf_records(readers: &mut Vec<FileReader>) -> VCFRecord {
@@ -102,8 +104,7 @@ fn main() {
     let s = stdout() ;
     let mut out = VCFWriter::new(BufWriter::new(s.lock()),&get_out_header(&readers)).unwrap();
     let mut row: usize = 1 ;
-    while read_one_line_from_every_file(&mut readers, row, args.serial ) {
-        check_metadata_consistency(&readers,row, args.check);
+    while read_one_line_from_every_file(&mut readers, row, args.serial , args.check ) {
         out.write_record(&join_vcf_records(&mut readers)).unwrap();
         row += 1 ;
     }
