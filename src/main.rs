@@ -7,6 +7,7 @@ use std::fs::File;
 use std::io::{stdin, stdout, BufRead, BufReader, BufWriter};
 use rayon::prelude::*;
 use clap::Parser;
+use bgzip::{BGZFWriter, BGZFError};
 
 pub struct FileReader {
     _filename: String,
@@ -55,6 +56,10 @@ struct Args {
     /// Serial not parallel file reading; faster if you have few input files, or few CPU cores
     #[clap(short, long)]
     serial: bool,
+
+    /// Output in bgzip format
+    #[clap(short, long)]
+    bgzip: bool,
 }
 
 fn get_out_header(readers: &Vec<FileReader>) -> VCFHeader {
@@ -102,10 +107,21 @@ fn main() {
     let args = Args::parse();
     let mut readers : Vec<FileReader> = stdin().lock().lines().map(|line|{FileReader::new(&line.unwrap())}).collect();
     let s = stdout() ;
-    let mut out = VCFWriter::new(BufWriter::new(s.lock()),&get_out_header(&readers)).unwrap();
+    let header = get_out_header(&readers) ;
     let mut row: usize = 1 ;
-    while read_one_line_from_every_file(&mut readers, row, args.serial , args.check ) {
-        out.write_record(&join_vcf_records(&mut readers)).unwrap();
-        row += 1 ;
+    let writer = BufWriter::new(s.lock());
+    if args.bgzip {
+        let writer =  BGZFWriter::new(writer, flate2::Compression::default());
+        let mut out = VCFWriter::new(writer,&header).unwrap();
+        while read_one_line_from_every_file(&mut readers, row, args.serial , args.check ) {
+            out.write_record(&join_vcf_records(&mut readers)).unwrap();
+            row += 1 ;
+        }
+    } else {
+        let mut out = VCFWriter::new(writer,&header).unwrap();
+        while read_one_line_from_every_file(&mut readers, row, args.serial , args.check ) {
+            out.write_record(&join_vcf_records(&mut readers)).unwrap();
+            row += 1 ;
+        }
     }
 }
