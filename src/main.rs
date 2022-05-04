@@ -106,18 +106,17 @@ fn join_vcf_records(readers: &mut Vec<FileReader>) -> VCFRecord {
 fn main() {
     let args = Args::parse();
     let mut readers: Vec<FileReader> = stdin().lock().lines().map(|line|{FileReader::new(&line.unwrap())}).collect();
-    let header = get_out_header(&readers) ;
     let s = stdout() ;
-    let stdout_writer = BufWriter::new(s.lock());
-    let writer : Box<dyn Write> = if args.bgzip {
-        Box::new(BGZFWriter::new(stdout_writer, flate2::Compression::default()))
+    let buffered_writer : Box<dyn Write> = if args.bgzip {
+        Box::new(BGZFWriter::new(BufWriter::new(s.lock()), flate2::Compression::default()))
     } else {
-        Box::new(stdout_writer)
+        Box::new(BufWriter::new(s.lock()))
     } ;
     let mut row: usize = 1 ;
-    let mut out = VCFWriter::new(writer,&header).unwrap();
+    let header = get_out_header(&readers) ;
+    let mut vcf_writer = VCFWriter::new(buffered_writer,&header).unwrap();
     while read_one_line_from_every_file(&mut readers, row, args.serial , args.check ) {
-        out.write_record(&join_vcf_records(&mut readers)).unwrap();
+        vcf_writer.write_record(&join_vcf_records(&mut readers)).unwrap();
         row += 1 ;
     }
 }
