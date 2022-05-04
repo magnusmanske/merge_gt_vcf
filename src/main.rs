@@ -80,6 +80,22 @@ fn read_one_line_from_every_file(readers: &mut Vec<FileReader>, row: usize, seri
     true
 }
 
+fn check_metadata_consistency(readers: &Vec<FileReader>, row: usize, check: bool) {
+    if check {
+        if readers.par_iter().any(|x|{!x.check_meta(&readers[0])}) {
+            panic!("Row {} has a problem with CROM/POS/ID/REF/ALT.",row);
+        }
+    }
+}
+
+fn join_vcf_records(readers: &mut Vec<FileReader>) -> VCFRecord {
+    let mut joined_vcf_record = readers[0].vcf_record.clone();
+    readers.iter_mut().skip(1).for_each(|record|{
+        joined_vcf_record.genotype.append(&mut record.vcf_record.genotype);
+    });
+    joined_vcf_record
+}
+
 fn main() {
     let args = Args::parse();
     let mut readers : Vec<FileReader> = stdin().lock().lines().map(|line|{FileReader::new(&line.unwrap())}).collect();
@@ -87,17 +103,8 @@ fn main() {
     let mut out = VCFWriter::new(BufWriter::new(s.lock()),&get_out_header(&readers)).unwrap();
     let mut row: usize = 1 ;
     while read_one_line_from_every_file(&mut readers, row, args.serial ) {
-        if args.check {
-            if readers.iter().any(|x|{!x.check_meta(&readers[0])}) {
-                panic!("Row {} has a problem with CROM/POS/ID/REF/ALT.",row);
-            }
-        }
-
-        let mut joined_vcf_record = readers[0].vcf_record.clone();
-        readers.iter_mut().skip(1).for_each(|record|{
-            joined_vcf_record.genotype.append(&mut record.vcf_record.genotype);
-        });
-        out.write_record(&joined_vcf_record).unwrap();
+        check_metadata_consistency(&readers,row, args.check);
+        out.write_record(&join_vcf_records(&mut readers)).unwrap();
         row += 1 ;
     }
 }
