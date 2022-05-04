@@ -69,7 +69,8 @@ fn get_out_header(readers: &Vec<FileReader>) -> VCFHeader {
     VCFHeader::new(items, all_samples)
 }
 
-fn read_one_line_from_every_file(readers: &mut Vec<FileReader>, row: usize, serial: bool, check_metadata: bool) -> bool {
+fn read_one_line_from_every_file(readers: &mut Vec<FileReader>, row: &mut usize, serial: bool, check_metadata: bool) -> bool {
+    *row += 1 ;
     let total_read : usize = if serial {
         readers.iter_mut().map(|reader|reader.load_next()).sum()
     } else {
@@ -113,9 +114,8 @@ fn main() {
     let mut readers: Vec<FileReader> = stdin().lock().lines().map(|line|{FileReader::new(&line.unwrap())}).collect();
     let header = get_out_header(&readers) ;
     let mut vcf_writer = VCFWriter::new(buffered_writer,&header).unwrap();
-    let mut row: usize = 1 ;
-    while read_one_line_from_every_file(&mut readers, row, args.serial , args.check ) {
+    let mut row: usize = 0 ;
+    while read_one_line_from_every_file(&mut readers, &mut row, args.serial , args.check ) {
         vcf_writer.write_record(&join_vcf_records(&mut readers)).unwrap();
-        row += 1 ;
     }
 }
