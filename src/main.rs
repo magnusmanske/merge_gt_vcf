@@ -105,7 +105,7 @@ fn main() {
     let stdout_lock = stdout.lock();
     let buffered_writer = BufWriter::new(stdout_lock) ;
     let buffered_writer : Box<dyn Write> = if args.bgzip {
-        Box::new(BGZFWriter::new(buffered_writer, flate2::Compression::best()))
+        Box::new(BGZFWriter::new(buffered_writer, flate2::Compression::default()))
     } else {
         Box::new(buffered_writer)
     } ;
