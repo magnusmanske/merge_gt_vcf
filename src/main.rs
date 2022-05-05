@@ -91,9 +91,9 @@ fn read_one_line_from_every_file(readers: &mut Vec<FileReader>, row: &mut usize,
     true
 }
 
-fn join_vcf_records(readers: &mut Vec<FileReader>) -> VCFRecord {
+fn join_vcf_records(readers: &Vec<FileReader>) -> VCFRecord {
     let mut joined_vcf_record = readers[0].vcf_record.clone();
-    joined_vcf_record.genotype.extend(readers.iter_mut().skip(1).map(|record|{record.vcf_record.genotype.to_owned()}).flatten());
+    joined_vcf_record.genotype.extend(readers.iter().skip(1).map(|record|{record.vcf_record.genotype.to_owned()}).flatten());
     joined_vcf_record
 }
 
@@ -116,6 +116,6 @@ fn main() {
     let mut vcf_writer = VCFWriter::new(buffered_writer,&header).unwrap();
     let mut row: usize = 0 ;
     while read_one_line_from_every_file(&mut readers, &mut row, args.serial , args.check ) {
-        vcf_writer.write_record(&join_vcf_records(&mut readers)).unwrap();
+        vcf_writer.write_record(&join_vcf_records(&readers)).unwrap();
     }
 }
